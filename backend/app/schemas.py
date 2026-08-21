@@ -5,3 +5,4 @@ from pydantic import BaseModel
 class HealthResponse(BaseModel):
     status: Literal["ok"]
     service: str
+    database: Literal["connected"]
