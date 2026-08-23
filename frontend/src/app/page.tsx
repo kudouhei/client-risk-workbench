@@ -1,4 +1,5 @@
 import { getClientRiskReviews } from "@/lib/api";
+import { ClientRiskTable } from "@/components/client-risk-table";
 
 export default async function HomePage() {
   const reviews = await getClientRiskReviews();
@@ -6,7 +7,7 @@ export default async function HomePage() {
   return (
     <main
       style={{
-        maxWidth: 1000,
+        maxWidth: 1200,
         margin: "48px auto",
         padding: 24,
       }}
@@ -17,14 +18,7 @@ export default async function HomePage() {
         Loaded {reviews.length} client risk reviews from FastAPI.
       </p>
 
-      <ul>
-        {reviews.map((review) => (
-          <li key={review.id}>
-            {review.legal_name} — {review.risk_rating} —{" "}
-            {review.review_status}
-          </li>
-        ))}
-      </ul>
+      <ClientRiskTable reviews={reviews} />
     </main>
-  )
+  );
 }
