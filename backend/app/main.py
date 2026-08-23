@@ -2,12 +2,12 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import FastAPI, Depends
-from sqlalchemy import text
+from sqlalchemy import text, select
 from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
 from app.models import ClientRiskReview
-from app.schemas import HealthResponse
+from app.schemas import HealthResponse, ClientRiskReviewResponse
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -36,3 +36,10 @@ def health(database_session: DatabaseSession) -> HealthResponse:
         database="connected",
     )
 
+@app.get("/api/client-risk-reviews", response_model=list[ClientRiskReviewResponse],)
+def list_client_risk_reviews( database_session: DatabaseSession, ) -> list[ClientRiskReview]:
+    statement = select(ClientRiskReview).order_by(
+        ClientRiskReview.id
+    )
+
+    return list(database_session.scalars(statement).all())
