@@ -7,12 +7,12 @@ type ErrorPageProps = {
   error: Error & {
     digest?: string;
   };
-  reset: () => void;
+  retry: () => void;
 };
 
 
 export default function ErrorPage({
-  reset,
+    retry,
 }: ErrorPageProps) {
   return (
     <main
@@ -29,7 +29,7 @@ export default function ErrorPage({
           "The API or database may be temporarily unavailable."
         }
         extra={
-          <Button type="primary" onClick={reset}>
+          <Button type="primary" onClick={retry}>
             Try again
           </Button>
         }
