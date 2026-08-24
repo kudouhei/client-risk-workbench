@@ -42,6 +42,14 @@ pip install -r requirements.txt
 cp .env.example .env        # first time only
 ```
 
+Apply database migrations (required before first API run):
+
+```bash
+alembic upgrade head
+```
+
+Alembic usage details: [backend/ALEMBIC.md](backend/ALEMBIC.md)
+
 Run the API (reload for local development):
 
 ```bash
