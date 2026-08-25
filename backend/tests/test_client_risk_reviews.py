@@ -1,6 +1,7 @@
 from datetime import date
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import ClientRiskReview
@@ -75,3 +76,38 @@ def test_create_client_risk_review(client: TestClient, database_session: Session
     assert created_review.legal_name == (
         "Helios Capital Partners"
     )
+
+def test_create_client_risk_review_rejects_invalid_data(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    request_data = {
+        "legal_name": "Invalid Compliance Client",
+        "client_type": "Fund",
+        "country_code": "lu",
+        "risk_rating": "Critical",
+        "review_status": "In Review",
+        "next_review_date": "2027-03-31",
+    }
+
+    response = client.post("/api/client-risk-reviews", json=request_data)
+
+    assert response.status_code == 422
+
+    validation_errors = response.json()["detail"]
+
+    invalid_fields = {
+        error["loc"][-1]
+        for error in validation_errors
+    }
+
+    assert "country_code" in invalid_fields
+    assert "risk_rating" in invalid_fields
+
+    stored_review = database_session.scalar(
+        select(ClientRiskReview).where(
+            ClientRiskReview.legal_name== "Invalid Compliance Client"
+        )
+    )
+
+    assert stored_review is None
