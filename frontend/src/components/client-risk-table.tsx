@@ -4,6 +4,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import { Card, Input, Space, Table, Tag } from "antd";
 import type { TableColumnsType } from "antd";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
 import type { ClientRiskReview, ReviewStatus, RiskRating } from "@/lib/type";
 
@@ -24,6 +25,12 @@ const columns: TableColumnsType<ClientRiskReview> = [
       title: "Client",
       dataIndex: "legal_name",
       key: "legal_name",
+      render: (
+        legalName: string,
+        review: ClientRiskReview,
+      ) => (
+        <Link href={`/reviews/${review.id}`}>{legalName}</Link>
+      ),
       sorter: (first, second) =>
         first.legal_name.localeCompare(second.legal_name),
     },

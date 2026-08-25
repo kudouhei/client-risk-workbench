@@ -15,3 +15,21 @@ export async function getClientRiskReviews(): Promise<ClientRiskReview[]> {
 
     return (await response.json()) as ClientRiskReview[];
 }
+
+export async function getClientRiskReview(reviewId: number): Promise<ClientRiskReview | null> {
+    const response = await fetch(
+        `${API_BASE_URL}/api/client-risk-reviews/${reviewId}`,
+        {
+          cache: "no-store",
+          signal: AbortSignal.timeout(5_000),
+        },
+      );
+      
+    if (response.status === 404) {return null;}
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch client risk review: ${response.statusText}`);
+    }
+
+    return (await response.json()) as ClientRiskReview;
+}
