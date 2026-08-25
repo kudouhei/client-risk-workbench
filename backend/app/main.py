@@ -1,13 +1,13 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, status
 from sqlalchemy import text, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import ClientRiskReview
-from app.schemas import HealthResponse, ClientRiskReviewResponse
+from app.schemas import HealthResponse, ClientRiskReviewResponse, ClientRiskReviewCreate
 
 app = FastAPI(
     title="Client Risk & Compliance Workbench API",
@@ -33,3 +33,14 @@ def list_client_risk_reviews( database_session: DatabaseSession, ) -> list[Clien
     )
 
     return list(database_session.scalars(statement).all())
+
+@app.post("/api/client-risk-reviews", response_model=ClientRiskReviewResponse, status_code=status.HTTP_201_CREATED)
+def create_client_risk_review(review_data: ClientRiskReviewCreate, database_session: DatabaseSession) -> ClientRiskReview:
+    review = ClientRiskReview(
+        **review_data.model_dump(),
+    )
+    database_session.add(review)
+    database_session.commit()
+    database_session.refresh(review)
+
+    return review
