@@ -12,3 +12,12 @@ export type ClientRiskReview = {
     next_review_date: string;
     created_at: string;
   };
+
+export type ClientRiskReviewCreate = {
+    legal_name: string;
+    client_type: string;
+    country_code: string;
+    risk_rating: RiskRating;
+    review_status: ReviewStatus;
+    next_review_date: string;
+  };

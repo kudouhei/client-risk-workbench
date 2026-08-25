@@ -1,5 +1,6 @@
 import { getClientRiskReviews } from "@/lib/api";
 import { ClientRiskTable } from "@/components/client-risk-table";
+import { CreateClientRiskReviewForm } from "@/components/create-client-risk-review-form";
 
 export default async function HomePage() {
   const reviews = await getClientRiskReviews();
@@ -17,6 +18,10 @@ export default async function HomePage() {
       <p>
         Loaded {reviews.length} client risk reviews from FastAPI.
       </p>
+
+      <div style={{ marginBottom: 16 }}>
+        <CreateClientRiskReviewForm />
+      </div>
 
       <ClientRiskTable reviews={reviews} />
     </main>
