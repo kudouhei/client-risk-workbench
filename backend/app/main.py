@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import FastAPI, Depends, status
+from fastapi import FastAPI, Depends, status, HTTPException
 from sqlalchemy import text, select
 from sqlalchemy.orm import Session
 
@@ -44,3 +44,13 @@ def create_client_risk_review(review_data: ClientRiskReviewCreate, database_sess
     database_session.refresh(review)
 
     return review
+
+@app.get("/api/client-risk-reviews/{review_id}", response_model=ClientRiskReviewResponse)
+def get_client_risk_review(review_id: int, database_session: DatabaseSession) -> ClientRiskReview:
+    review = database_session.get(ClientRiskReview, review_id)
+
+    if review is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client risk review not found.")
+
+    return review
+

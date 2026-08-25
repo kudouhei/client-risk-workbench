@@ -111,3 +111,42 @@ def test_create_client_risk_review_rejects_invalid_data(
     )
 
     assert stored_review is None
+
+def test_get_client_risk_review_returns_record(client: TestClient, database_session: Session) -> None:
+    review = ClientRiskReview(
+        legal_name="Atlas Private Markets",
+        client_type="Asset Manager",
+        country_code="LU",
+        risk_rating="High",
+        review_status="Escalated",
+        next_review_date=date(2027, 9, 30),
+    )
+
+    database_session.add(review)
+    database_session.flush()
+
+    response = client.get(f"/api/client-risk-reviews/{review.id}")
+
+    assert response.status_code == 200
+    response_data = response.json()
+
+    assert response_data["id"] == review.id
+    assert response_data["legal_name"] == "Atlas Private Markets"
+    assert response_data["client_type"] == "Asset Manager"
+    assert response_data["country_code"] == "LU"
+    assert response_data["risk_rating"] == "High"
+    assert response_data["review_status"] == "Escalated"
+    assert response_data["next_review_date"] == (
+        "2027-09-30"
+    )
+    assert response_data["created_at"] is not None
+
+
+def test_get_client_risk_review_returns_404_when_missing(client: TestClient, ) -> None:
+    response = client.get(
+        "/api/client-risk-reviews/0"
+    )
+
+    assert response.status_code == 404
+
+    assert response.json() == {"detail": "Client risk review not found."}
