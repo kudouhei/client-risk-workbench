@@ -49,4 +49,13 @@ class ClientRiskReviewResponse(BaseModel):
     next_review_date: date
     created_at: datetime
 
-    
+class ClientRiskReviewStatusEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    client_risk_review_id: int
+    previous_status: ReviewStatus
+    new_status: ReviewStatus
+    changed_by: str
+    change_reason: str | None
+    changed_at: datetime

@@ -1,10 +1,10 @@
 from datetime import date
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import ClientRiskReview
+from app.models import ClientRiskReview, ClientRiskReviewStatusEvent
 
 def test_list_client_risk_reviews_returns_database_record(client: TestClient, database_session: Session) -> None:
     review = ClientRiskReview(
@@ -180,6 +180,20 @@ def test_update_client_risk_review_status(client: TestClient, database_session: 
     database_session.refresh(review)
 
     assert review.review_status == "Approved"
+    
+    status_event = database_session.scalar(
+        select(ClientRiskReviewStatusEvent).where(
+            ClientRiskReviewStatusEvent.client_risk_review_id
+            == review.id
+        )
+    )
+
+    assert status_event is not None
+    assert status_event.previous_status == "In Review"
+    assert status_event.new_status == "Approved"
+    assert status_event.changed_by == "prototype-user"
+    assert status_event.change_reason is None
+    assert status_event.changed_at is not None
 
 
 def test_update_client_risk_review_rejects_invalid_status(
@@ -222,3 +236,126 @@ def test_update_client_risk_review_rejects_invalid_status(
     database_session.refresh(review)
 
     assert review.review_status == "In Review"
+
+# No status event is created when the status is the same
+def test_update_same_status_does_not_create_event(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    review = ClientRiskReview(
+        legal_name="Stable Status Test Client",
+        client_type="Bank",
+        country_code="CH",
+        risk_rating="Low",
+        review_status="Approved",
+        next_review_date=date(2028, 6, 30),
+    )
+
+    database_session.add(review)
+    database_session.flush()
+
+    response = client.patch(
+        (
+            "/api/client-risk-reviews/"
+            f"{review.id}/status"
+        ),
+        json={
+            "review_status": "Approved",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["review_status"] == (
+        "Approved"
+    )
+
+    event_count = database_session.scalar(
+        select(
+            func.count(
+                ClientRiskReviewStatusEvent.id
+            )
+        ).where(
+            ClientRiskReviewStatusEvent.client_risk_review_id
+            == review.id
+        )
+    )
+
+    assert event_count == 0
+
+
+def test_list_status_events_returns_newest_first(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    review = ClientRiskReview(
+        legal_name="Chronology Test Fund",
+        client_type="Fund",
+        country_code="LU",
+        risk_rating="High",
+        review_status="In Review",
+        next_review_date=date(2028, 9, 30),
+    )
+
+    database_session.add(review)
+    database_session.flush()
+
+    review_id = review.id
+
+    first_update = client.patch(
+        (
+            "/api/client-risk-reviews/"
+            f"{review_id}/status"
+        ),
+        json={
+            "review_status": "Escalated",
+        },
+    )
+
+    assert first_update.status_code == 200
+
+    second_update = client.patch(
+        (
+            "/api/client-risk-reviews/"
+            f"{review_id}/status"
+        ),
+        json={
+            "review_status": "Approved",
+        },
+    )
+
+    assert second_update.status_code == 200
+
+    response = client.get(
+        (
+            "/api/client-risk-reviews/"
+            f"{review_id}/status-events"
+        )
+    )
+
+    assert response.status_code == 200
+
+    response_data = response.json()
+
+    assert len(response_data) == 2
+
+    assert response_data[0]["previous_status"] == (
+        "Escalated"
+    )
+    assert response_data[0]["new_status"] == "Approved"
+
+    assert response_data[1]["previous_status"] == (
+        "In Review"
+    )
+    assert response_data[1]["new_status"] == (
+        "Escalated"
+    )
+
+    for event in response_data:
+        assert event["client_risk_review_id"] == (
+            review_id
+        )
+        assert event["changed_by"] == (
+            "prototype-user"
+        )
+        assert event["change_reason"] is None
+        assert event["changed_at"] is not None

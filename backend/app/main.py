@@ -6,8 +6,8 @@ from sqlalchemy import text, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import ClientRiskReview
-from app.schemas import HealthResponse, ClientRiskReviewResponse, ClientRiskReviewCreate, ClientRiskReviewStatusUpdate
+from app.models import ClientRiskReview, ClientRiskReviewStatusEvent
+from app.schemas import HealthResponse, ClientRiskReviewResponse, ClientRiskReviewCreate, ClientRiskReviewStatusUpdate, ClientRiskReviewStatusEventResponse
 
 app = FastAPI(
     title="Client Risk & Compliance Workbench API",
@@ -55,17 +55,53 @@ def get_client_risk_review(review_id: int, database_session: DatabaseSession) ->
     return review
 
 @app.patch("/api/client-risk-reviews/{review_id}/status", response_model=ClientRiskReviewResponse)
-def update_client_risk_review_status(review_id: int, status_update: ClientRiskReviewStatusUpdate, database_session: DatabaseSession) -> ClientRiskReview:
+def update_client_risk_review_status(
+    review_id: int,
+    status_update: ClientRiskReviewStatusUpdate,
+    database_session: DatabaseSession,
+) -> ClientRiskReview:
     review = database_session.get(ClientRiskReview, review_id)
 
     if review is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client risk review not found.")
 
-    review.review_status = (
-        status_update.review_status
+    new_status = status_update.review_status
+
+    if review.review_status == new_status:
+        return review
+
+    previous_status = review.review_status
+
+    status_event = ClientRiskReviewStatusEvent(
+        client_risk_review_id=review.id,
+        previous_status=previous_status,
+        new_status=new_status,
+        changed_by="prototype-user",
+        change_reason=None,
     )
+
+    review.review_status = new_status
+    database_session.add(status_event)
 
     database_session.commit()
     database_session.refresh(review)
 
     return review
+
+@app.get("/api/client-risk-reviews/{review_id}/status-events", response_model=list[ClientRiskReviewStatusEventResponse])
+def list_client_risk_review_status_events(review_id: int, database_session: DatabaseSession) -> list[ClientRiskReviewStatusEvent]:
+    review = database_session.get(ClientRiskReview, review_id)
+
+    if review is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client risk review not found.")
+    
+    statement = select(ClientRiskReviewStatusEvent).where(
+        ClientRiskReviewStatusEvent.client_risk_review_id == review.id
+    ).order_by(
+        ClientRiskReviewStatusEvent.changed_at.desc(), ClientRiskReviewStatusEvent.id.desc(),
+    )
+
+    return list(
+        database_session.scalars(statement).all()
+    )
+
