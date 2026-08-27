@@ -1,10 +1,11 @@
 "use client";
 
-import { Card, Descriptions, Space, Tag } from "antd";
+import { Card, Descriptions, Space, Tag, Divider } from "antd";
 import type { DescriptionsProps } from "antd";
 import Link from "next/link";
 
 import type { ClientRiskReview, ReviewStatus, RiskRating } from "@/lib/type";
+import { ReviewStatusControl } from "@/components/review-status-control";
   
 const riskColours: Record<RiskRating, string> = {
     Low: "green",
@@ -84,6 +85,9 @@ export function ClientRiskReviewDetails({review}: {review: ClientRiskReview}) {
               column={1}
               items={descriptionItems}
             />
+            
+            <Divider />
+            <ReviewStatusControl reviewId={review.id} currentStatus={review.review_status} />
           </Card>
         </Space>
     );
