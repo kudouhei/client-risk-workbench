@@ -150,3 +150,75 @@ def test_get_client_risk_review_returns_404_when_missing(client: TestClient, ) -
     assert response.status_code == 404
 
     assert response.json() == {"detail": "Client risk review not found."}
+
+
+def test_update_client_risk_review_status(client: TestClient, database_session: Session) -> None:
+    review = ClientRiskReview(
+        legal_name="Meridian Institutional Fund",
+        client_type="Fund",
+        country_code="LU",
+        risk_rating="Medium",
+        review_status="In Review",
+        next_review_date=date(2027, 12, 31),
+    )
+
+    database_session.add(review)
+    database_session.flush()
+
+    response = client.patch(
+        "/api/client-risk-reviews/"f"{review.id}/status",
+        json={"review_status": "Approved"},
+    )
+
+    assert response.status_code == 200
+
+    response_data = response.json()
+
+    assert response_data["id"] == review.id
+    assert response_data["review_status"] == "Approved"
+
+    database_session.refresh(review)
+
+    assert review.review_status == "Approved"
+
+
+def test_update_client_risk_review_rejects_invalid_status(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    review = ClientRiskReview(
+        legal_name="Oakbridge Pension Services",
+        client_type="Pension Fund",
+        country_code="NL",
+        risk_rating="Low",
+        review_status="In Review",
+        next_review_date=date(2028, 3, 31),
+    )
+
+    database_session.add(review)
+    database_session.flush()
+
+    response = client.patch(
+        (
+            "/api/client-risk-reviews/"
+            f"{review.id}/status"
+        ),
+        json={
+            "review_status": "Pending",
+        },
+    )
+
+    assert response.status_code == 422
+
+    validation_errors = response.json()["detail"]
+
+    invalid_fields = {
+        error["loc"][-1]
+        for error in validation_errors
+    }
+
+    assert "review_status" in invalid_fields
+
+    database_session.refresh(review)
+
+    assert review.review_status == "In Review"

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import ClientRiskReview
-from app.schemas import HealthResponse, ClientRiskReviewResponse, ClientRiskReviewCreate
+from app.schemas import HealthResponse, ClientRiskReviewResponse, ClientRiskReviewCreate, ClientRiskReviewStatusUpdate
 
 app = FastAPI(
     title="Client Risk & Compliance Workbench API",
@@ -54,3 +54,18 @@ def get_client_risk_review(review_id: int, database_session: DatabaseSession) ->
 
     return review
 
+@app.patch("/api/client-risk-reviews/{review_id}/status", response_model=ClientRiskReviewResponse)
+def update_client_risk_review_status(review_id: int, status_update: ClientRiskReviewStatusUpdate, database_session: DatabaseSession) -> ClientRiskReview:
+    review = database_session.get(ClientRiskReview, review_id)
+
+    if review is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client risk review not found.")
+
+    review.review_status = (
+        status_update.review_status
+    )
+
+    database_session.commit()
+    database_session.refresh(review)
+
+    return review

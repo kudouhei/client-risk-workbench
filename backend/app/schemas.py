@@ -34,6 +34,9 @@ class ClientRiskReviewCreate(BaseModel):
     review_status: ReviewStatus
     next_review_date: date
 
+class ClientRiskReviewStatusUpdate(BaseModel):
+    review_status: ReviewStatus
+    
 class ClientRiskReviewResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

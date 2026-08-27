@@ -17,14 +17,6 @@ def seed_demo_data() -> None:
 
         print("Seeding demo data...")
 
-        demo_data = [
-            ClientRiskReview(
-                legal_name="John Doe",
-                client_type="Individual",
-                country_code="US",
-            )
-        ]
-
         database_session.add_all(
             [
                 ClientRiskReview(
