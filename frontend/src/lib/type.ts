@@ -21,3 +21,13 @@ export type ClientRiskReviewCreate = {
     review_status: ReviewStatus;
     next_review_date: string;
   };
+
+export type ClientRiskReviewStatusEvent = {
+    id: number;
+    client_risk_review_id: number;
+    previous_status: ReviewStatus;
+    new_status: ReviewStatus;
+    changed_by: string;
+    change_reason: string | null;
+    changed_at: string;
+};

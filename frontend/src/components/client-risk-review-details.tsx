@@ -4,9 +4,11 @@ import { Card, Descriptions, Space, Tag, Divider } from "antd";
 import type { DescriptionsProps } from "antd";
 import Link from "next/link";
 
-import type { ClientRiskReview, ReviewStatus, RiskRating } from "@/lib/type";
+import type { ClientRiskReview, ClientRiskReviewStatusEvent, ReviewStatus, RiskRating } from "@/lib/type";
 import { ReviewStatusControl } from "@/components/review-status-control";
-  
+import { ReviewStatusHistory } from "@/components/review-status-history";
+
+
 const riskColours: Record<RiskRating, string> = {
     Low: "green",
     Medium: "gold",
@@ -27,7 +29,7 @@ function formatCreatedAt(value: string): string {
     }).format(new Date(value));
   }
   
-export function ClientRiskReviewDetails({review}: {review: ClientRiskReview}) {
+export function ClientRiskReviewDetails({review, statusEvents}: {review: ClientRiskReview, statusEvents: ClientRiskReviewStatusEvent[]}) {
     const descriptionItems: DescriptionsProps["items"] = [
         {
           key: "client_type",
@@ -88,6 +90,9 @@ export function ClientRiskReviewDetails({review}: {review: ClientRiskReview}) {
             
             <Divider />
             <ReviewStatusControl reviewId={review.id} currentStatus={review.review_status} />
+
+            <Divider />
+            <ReviewStatusHistory events={statusEvents} />
           </Card>
         </Space>
     );

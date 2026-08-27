@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ClientRiskReviewDetails,} from "@/components/client-risk-review-details";
-import { getClientRiskReview } from "@/lib/api";
+import { getClientRiskReview, getClientRiskReviewStatusEvents } from "@/lib/api";
 
 type ClientRiskReviewPageProps = {
   params: Promise<{
@@ -19,9 +19,15 @@ export default async function ClientRiskReviewPage({
     notFound();
   }
 
-  const review = await getClientRiskReview(reviewId);
-
-  if (review === null) {
+  const [review, statusEvents] = await Promise.all([
+    getClientRiskReview(reviewId),
+    getClientRiskReviewStatusEvents(reviewId),
+  ]);
+  
+  if (
+    review === null ||
+    statusEvents === null
+  ) {
     notFound();
   }
 
@@ -33,7 +39,7 @@ export default async function ClientRiskReviewPage({
         padding: 24,
       }}
     >
-      <ClientRiskReviewDetails review={review} />
+      <ClientRiskReviewDetails review={review} statusEvents={statusEvents} />
     </main>
   );
 }
