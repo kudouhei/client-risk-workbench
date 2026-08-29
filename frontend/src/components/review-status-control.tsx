@@ -1,6 +1,6 @@
 "use client";
 
-import { App, Button, Popconfirm, Select, Space, Typography } from "antd";
+import { App, Button, Popconfirm, Select, Space, Typography, Input } from "antd";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
@@ -19,12 +19,17 @@ const statusOptions: Array<{value: ReviewStatus; label: string}> = [
 export function ReviewStatusControl({ reviewId, currentStatus}: { reviewId: number; currentStatus: ReviewStatus }) {
     const [selectedStatus, setSelectedStatus] = useState<ReviewStatus>(currentStatus);
     const [updating, setUpdating] = useState(false);
+    const [changeReason, setChangeReason] = useState("");
 
     const selectId = useId();
+    const reasonId = useId();
     const router = useRouter();
     const { message } = App.useApp();
 
     const statusIsUnchanged = selectedStatus === currentStatus;
+    const normalizedReason = changeReason.trim();
+    const reasonIsInvalid = normalizedReason.length < 5;
+    const updateIsDisabled = statusIsUnchanged || reasonIsInvalid;
 
     async function handleUpdateStatus() {
         setUpdating(true);
@@ -39,6 +44,7 @@ export function ReviewStatusControl({ reviewId, currentStatus}: { reviewId: numb
                   },
                   body: JSON.stringify({
                     review_status: selectedStatus,
+                    change_reason: normalizedReason,
                   }),
                 },
               );
@@ -55,6 +61,7 @@ export function ReviewStatusControl({ reviewId, currentStatus}: { reviewId: numb
               }
 
               message.success(`Review status updated to ${selectedStatus}.`);
+              setChangeReason("");
 
               router.refresh();
 
@@ -83,6 +90,45 @@ export function ReviewStatusControl({ reviewId, currentStatus}: { reviewId: numb
     
               <Typography.Text type="secondary"> Select the new workflow status and confirm the change.</Typography.Text>
             </div>
+
+            <div>
+              <label
+                htmlFor={reasonId}
+                style={{
+                  display: "block",
+                  marginBottom: 8,
+                  fontWeight: 600,
+                }}
+              >
+                Change reason
+              </label>
+
+              <Input.TextArea
+                id={reasonId}
+                value={changeReason}
+                onChange={(event) =>
+                  setChangeReason(event.target.value)
+                }
+                placeholder={
+                  "Explain why this workflow status "
+                  + "is being changed."
+                }
+                maxLength={500}
+                showCount
+                autoSize={{
+                  minRows: 3,
+                  maxRows: 6,
+                }}
+                aria-describedby={`${reasonId}-help`}
+              />
+
+              <Typography.Text
+                id={`${reasonId}-help`}
+                type="secondary"
+              >
+                Enter at least 5 non-whitespace characters.
+              </Typography.Text>
+            </div>
     
             <Space wrap>
               <label htmlFor={selectId} style={{ fontWeight: 600 }}>New status</label>
@@ -101,12 +147,12 @@ export function ReviewStatusControl({ reviewId, currentStatus}: { reviewId: numb
                 }
                 okText="Confirm"
                 cancelText="Cancel"
-                disabled={statusIsUnchanged}
+                disabled={updateIsDisabled}
                 onConfirm={handleUpdateStatus}
               >
                 <Button
                   type="primary"
-                  disabled={statusIsUnchanged}
+                  disabled={updateIsDisabled}
                   loading={updating}
                 >
                   Update status

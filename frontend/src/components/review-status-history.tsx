@@ -25,7 +25,7 @@ export function ReviewStatusHistory({
     const timelineItems = events.map((event) => ({
       key: event.id,
       color: statusColours[event.new_status],
-      children: (
+      content: (
         <div>
           <Typography.Text strong>
             {event.previous_status}
