@@ -38,8 +38,7 @@ class ClientRiskReviewStatusUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     review_status: ReviewStatus
-    change_reason: str | None = Field(
-        default=None,
+    change_reason: str = Field(
         min_length=5,
         max_length=500,
     )
@@ -48,11 +47,8 @@ class ClientRiskReviewStatusUpdate(BaseModel):
     @classmethod
     def normalize_change_reason(
         cls,
-        value: str | None,
-    ) -> str | None:
-        if value is None:
-            return None
-
+        value: str,
+    ) -> str:
         normalized_value = value.strip()
 
         if len(normalized_value) < 5:

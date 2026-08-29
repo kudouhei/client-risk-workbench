@@ -224,6 +224,9 @@ def test_update_client_risk_review_rejects_invalid_status(
         ),
         json={
             "review_status": "Pending",
+            "change_reason": (
+                "Attempting an unsupported status."
+            ),
         },
     )
 
@@ -266,6 +269,9 @@ def test_update_same_status_does_not_create_event(
         ),
         json={
             "review_status": "Approved",
+            "change_reason": (
+                "Duplicate status update request."
+            ),
         },
     )
 
@@ -313,6 +319,9 @@ def test_list_status_events_returns_newest_first(
         ),
         json={
             "review_status": "Escalated",
+            "change_reason": (
+                "Potential sanctions match requires escalation."
+            ),
         },
     )
 
@@ -325,6 +334,9 @@ def test_list_status_events_returns_newest_first(
         ),
         json={
             "review_status": "Approved",
+            "change_reason": (
+                "Enhanced due diligence completed."
+            ),
         },
     )
 
@@ -354,13 +366,71 @@ def test_list_status_events_returns_newest_first(
     assert response_data[1]["new_status"] == (
         "Escalated"
     )
+    assert response_data[0]["change_reason"] == (
+        "Enhanced due diligence completed."
+    )
+
+    assert response_data[1]["change_reason"] == (
+        "Potential sanctions match requires escalation."
+    )
 
     for event in response_data:
-        assert event["client_risk_review_id"] == (
-            review_id
-        )
-        assert event["changed_by"] == (
-            "prototype-user"
-        )
-        assert event["change_reason"] is None
+        assert event["client_risk_review_id"] == (review_id)
+        assert event["changed_by"] == ("prototype-user")
         assert event["changed_at"] is not None
+        
+
+
+def test_update_status_requires_change_reason(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    review = ClientRiskReview(
+        legal_name="Reason Required Test Client",
+        client_type="Fund",
+        country_code="LU",
+        risk_rating="Medium",
+        review_status="In Review",
+        next_review_date=date(2028, 12, 31),
+    )
+
+    database_session.add(review)
+    database_session.flush()
+
+    response = client.patch(
+        (
+            "/api/client-risk-reviews/"
+            f"{review.id}/status"
+        ),
+        json={
+            "review_status": "Escalated",
+        },
+    )
+
+    assert response.status_code == 422
+
+    validation_errors = response.json()["detail"]
+
+    invalid_fields = {
+        error["loc"][-1]
+        for error in validation_errors
+    }
+
+    assert "change_reason" in invalid_fields
+
+    database_session.refresh(review)
+
+    assert review.review_status == "In Review"
+
+    event_count = database_session.scalar(
+        select(
+            func.count(
+                ClientRiskReviewStatusEvent.id
+            )
+        ).where(
+            ClientRiskReviewStatusEvent.client_risk_review_id
+            == review.id
+        )
+    )
+
+    assert event_count == 0
