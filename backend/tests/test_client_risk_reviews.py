@@ -167,7 +167,12 @@ def test_update_client_risk_review_status(client: TestClient, database_session: 
 
     response = client.patch(
         "/api/client-risk-reviews/"f"{review.id}/status",
-        json={"review_status": "Approved"},
+        json={
+            "review_status": "Approved",
+            "change_reason": (
+                "Periodic KYC review completed."
+            ),
+        },
     )
 
     assert response.status_code == 200
@@ -192,7 +197,7 @@ def test_update_client_risk_review_status(client: TestClient, database_session: 
     assert status_event.previous_status == "In Review"
     assert status_event.new_status == "Approved"
     assert status_event.changed_by == "prototype-user"
-    assert status_event.change_reason is None
+    assert status_event.change_reason == ("Periodic KYC review completed.")
     assert status_event.changed_at is not None
 
 

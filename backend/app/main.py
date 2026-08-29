@@ -77,7 +77,7 @@ def update_client_risk_review_status(
         previous_status=previous_status,
         new_status=new_status,
         changed_by="prototype-user",
-        change_reason=None,
+        change_reason=status_update.change_reason,
     )
 
     review.review_status = new_status

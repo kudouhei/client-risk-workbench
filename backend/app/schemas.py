@@ -1,7 +1,7 @@
 from typing import Literal
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 RiskRating = Literal["Low", "Medium", "High"]
 
@@ -35,7 +35,33 @@ class ClientRiskReviewCreate(BaseModel):
     next_review_date: date
 
 class ClientRiskReviewStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     review_status: ReviewStatus
+    change_reason: str | None = Field(
+        default=None,
+        min_length=5,
+        max_length=500,
+    )
+
+    @field_validator("change_reason")
+    @classmethod
+    def normalize_change_reason(
+        cls,
+        value: str | None,
+    ) -> str | None:
+        if value is None:
+            return None
+
+        normalized_value = value.strip()
+
+        if len(normalized_value) < 5:
+            raise ValueError(
+                "Change reason must contain at least "
+                "5 non-whitespace characters."
+            )
+
+        return normalized_value
     
 class ClientRiskReviewResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
